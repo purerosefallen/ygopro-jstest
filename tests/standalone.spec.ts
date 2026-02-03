@@ -5,13 +5,16 @@ import {
   YGOProMsgSelectChain,
   YGOProMsgSelectEffectYn,
   YGOProMsgSelectIdleCmd,
-  YGOProMsgSelectPlace,
-  YGOProMsgSelectPosition,
   YGOProMsgSelectSum,
 } from 'ygopro-msg-encode';
-import { DefaultResponseAdvancor, NoEffectAdvancor } from '../src/advancors';
+import {
+  DefaultResponseAdvancor,
+  NoEffectAdvancor,
+  SummonPlaceAdvancor,
+} from '../src/advancors';
 import { useYGOProTest } from '../src/create-ygopro-test';
 import { YGOProTest } from '../src/ygopro-test';
+import path from 'node:path';
 
 describe('Standalone', () => {
   const testProcess = (ctx: YGOProTest) =>
@@ -32,16 +35,7 @@ describe('Standalone', () => {
         expect(c1.canActivate()).toBe(false);
         return c1.summon();
       })
-      .state(YGOProMsgSelectPlace, (msg) =>
-        msg.prepareResponse([
-          {
-            player: 0,
-            location: OcgcoreScriptConstants.LOCATION_MZONE,
-            sequence: 1,
-          },
-        ]),
-      )
-      .advance(NoEffectAdvancor())
+      .advance(SummonPlaceAdvancor(), NoEffectAdvancor())
       .state(YGOProMsgSelectEffectYn, (msg) => {
         expect(msg.code).toBe(28985331); // check if it's the correct card effect
         return msg.prepareResponse(true);
@@ -74,20 +68,7 @@ describe('Standalone', () => {
         YGOProMsgSelectCard,
         (msg) => msg.prepareResponse([{ code: 28985331 }]), // pick the warrior on field
       )
-      .advance(DefaultResponseAdvancor())
-      .state(YGOProMsgSelectPlace, (msg) =>
-        msg.prepareResponse([
-          {
-            player: 0,
-            location: OcgcoreScriptConstants.LOCATION_MZONE,
-            sequence: 2,
-          },
-        ]),
-      )
-      .state(YGOProMsgSelectPosition, (msg) =>
-        msg.prepareResponse(OcgcoreScriptConstants.POS_FACEUP_DEFENSE),
-      )
-      .advance(DefaultResponseAdvancor())
+      .advance(SummonPlaceAdvancor(), DefaultResponseAdvancor())
       .state(YGOProMsgSelectIdleCmd, (msg) => {
         expect(ctx.getLP(0)).toBe(4000);
         const mzone = ctx.getFieldCard(
@@ -97,10 +78,8 @@ describe('Standalone', () => {
         expect(mzone).toHaveLength(2);
         const warrior = mzone.find((c) => c.code === 28985331);
         expect(warrior.level).toBe(4);
-        expect(warrior.position).toBe(OcgcoreScriptConstants.POS_FACEUP_ATTACK);
         const dragon = mzone.find((c) => c.code === 5560911);
         expect(dragon.level).toBe(3);
-        expect(dragon.position).toBe(OcgcoreScriptConstants.POS_FACEUP_DEFENSE);
         const ex = ctx.getFieldCard(0, OcgcoreScriptConstants.LOCATION_EXTRA);
         expect(ex).toHaveLength(1);
         expect(ex[0].code).toBe(73580471);
@@ -113,19 +92,7 @@ describe('Standalone', () => {
       .state(YGOProMsgSelectSum, (msg) =>
         msg.prepareResponse([{ code: 28985331 }]),
       )
-      .state(YGOProMsgSelectPlace, (msg) =>
-        msg.prepareResponse([
-          {
-            player: 0,
-            location: OcgcoreScriptConstants.LOCATION_MZONE,
-            sequence: 3,
-          },
-        ]),
-      )
-      .state(YGOProMsgSelectPosition, (msg) =>
-        msg.prepareResponse(OcgcoreScriptConstants.POS_FACEUP_ATTACK),
-      )
-      .advance(NoEffectAdvancor())
+      .advance(SummonPlaceAdvancor(), NoEffectAdvancor())
       .state(YGOProMsgSelectEffectYn, (msg) => msg.prepareResponse(true)) // activate effect to destroy itself
       .advance(DefaultResponseAdvancor())
       .state(YGOProMsgSelectIdleCmd, (msg) => {
@@ -173,6 +140,46 @@ describe('Standalone', () => {
             },
           ]),
         ),
+    );
+  });
+  it('Should process with puzzle', async () => {
+    await useYGOProTest(
+      {
+        ygoproPath: '/home/nanahira/ygo/ygopro',
+        single: `
+Debug.SetAIName("as")
+Debug.ReloadFieldBegin(DUEL_ATTACK_FIRST_TURN)
+Debug.SetPlayerInfo(0,8000,0,0)
+Debug.SetPlayerInfo(1,8000,0,0)
+Debug.AddCard(28985331,0,0,LOCATION_HAND,0,POS_FACEUP)
+Debug.AddCard(10000000,0,0,LOCATION_HAND,0,POS_FACEUP)
+Debug.AddCard(5560911,0,0,LOCATION_DECK,0,POS_FACEDOWN)
+Debug.AddCard(14558127,1,1,LOCATION_HAND,0,POS_FACEUP)
+Debug.AddCard(73580471,0,0,LOCATION_EXTRA,0,POS_FACEDOWN)
+
+Debug.ReloadFieldEnd()
+          `,
+      },
+      testProcess,
+    );
+  });
+  it('Should process with filename puzzle', async () => {
+    await useYGOProTest(
+      {
+        ygoproPath: '/home/nanahira/ygo/ygopro',
+        single: path.join(__dirname, 'single', 'standalone-test.lua'),
+      },
+      testProcess,
+    );
+  });
+  it('Should process with YRP using puzzle', async () => {
+    await useYGOProTest(
+      {
+        scriptPath: __dirname,
+        yrp: path.join(__dirname, 'standalone-test.yrp'),
+        ygoproPath: '/home/nanahira/ygo/ygopro',
+      },
+      testProcess,
     );
   });
 });
