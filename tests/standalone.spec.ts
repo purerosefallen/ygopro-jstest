@@ -8,18 +8,19 @@ import {
   YGOProMsgSelectSum,
 } from 'ygopro-msg-encode';
 import {
-  DefaultResponseAdvancor,
+  SlientAdvancor,
   NoEffectAdvancor,
   SummonPlaceAdvancor,
 } from '../src/advancors';
 import { useYGOProTest } from '../src/create-ygopro-test';
 import { YGOProTest } from '../src/ygopro-test';
 import path from 'node:path';
+import { SelectCardAdvancor } from '../src/advancors/select-card-advancor';
 
 describe('Standalone', () => {
   const testProcess = (ctx: YGOProTest) =>
     ctx
-      .advance(DefaultResponseAdvancor())
+      .advance(SlientAdvancor())
       .state(YGOProMsgSelectIdleCmd, (msg) => {
         expect(
           ctx.allMessages.find((m) => m instanceof YGOProMsgDraw),
@@ -48,11 +49,7 @@ describe('Standalone', () => {
         expect(c1.canActivate()).toBe(true); // can activate urara
         // does not activate urara here
       })
-      .advance(DefaultResponseAdvancor())
-      .state(YGOProMsgSelectCard, (msg) =>
-        msg.prepareResponse([{ code: 5560911 }]),
-      )
-      .advance(DefaultResponseAdvancor())
+      .advance(SlientAdvancor(), SelectCardAdvancor({ code: 5560911 }))
       .state(YGOProMsgSelectIdleCmd, (msg) => {
         const grave = ctx.getFieldCard(
           0,
@@ -63,12 +60,11 @@ describe('Standalone', () => {
         expect(grave[0].canActivate()).toBe(true);
         return grave[0].activate();
       })
-      .advance(DefaultResponseAdvancor())
-      .state(
-        YGOProMsgSelectCard,
-        (msg) => msg.prepareResponse([{ code: 28985331 }]), // pick the warrior on field
+      .advance(
+        SummonPlaceAdvancor(),
+        SelectCardAdvancor({ code: 28985331 }),
+        SlientAdvancor(),
       )
-      .advance(SummonPlaceAdvancor(), DefaultResponseAdvancor())
       .state(YGOProMsgSelectIdleCmd, (msg) => {
         expect(ctx.getLP(0)).toBe(4000);
         const mzone = ctx.getFieldCard(
@@ -86,15 +82,13 @@ describe('Standalone', () => {
         expect(ex[0].canSpecialSummon()).toBe(true);
         return ex[0].specialSummon();
       })
-      .state(YGOProMsgSelectCard, (msg) =>
-        msg.prepareResponse([{ code: 5560911 }]),
+      .advance(
+        SelectCardAdvancor({ code: 5560911 }, { code: 28985331 }),
+        SummonPlaceAdvancor(),
+        NoEffectAdvancor(),
       )
-      .state(YGOProMsgSelectSum, (msg) =>
-        msg.prepareResponse([{ code: 28985331 }]),
-      )
-      .advance(SummonPlaceAdvancor(), NoEffectAdvancor())
       .state(YGOProMsgSelectEffectYn, (msg) => msg.prepareResponse(true)) // activate effect to destroy itself
-      .advance(DefaultResponseAdvancor())
+      .advance(SlientAdvancor())
       .state(YGOProMsgSelectIdleCmd, (msg) => {
         const mzone = ctx.getFieldCard(
           0,

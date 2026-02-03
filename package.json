@@ -71,7 +71,7 @@
     "koishipro-core.js": "^1.2.0",
     "nfkit": "^1.0.14",
     "sql.js": "^1.13.0",
-    "ygopro-msg-encode": "^1.0.5",
+    "ygopro-msg-encode": "^1.1.0",
     "ygopro-yrp-encode": "^1.0.1"
   }
 }

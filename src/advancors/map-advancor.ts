@@ -3,19 +3,19 @@ import { Advancor } from '../types';
 
 export interface MapAdvancorHandleObject<T extends YGOProMsgResponseBase> {
   msgClass: new (...args: any[]) => T;
-  cb: (msg: T) => Uint8Array | undefined;
+  cb: Advancor<T>;
 }
 
 export const MapAdvancorHandler = <T extends YGOProMsgResponseBase>(
   msgClass: new (...args: any[]) => T,
-  cb: (msg: T) => Uint8Array | undefined,
+  cb: Advancor<T>,
 ): MapAdvancorHandleObject<T> => ({
   msgClass,
   cb,
 });
 
 export const MapAdvancor = (
-  handlers: MapAdvancorHandleObject<YGOProMsgResponseBase>[],
+  ...handlers: MapAdvancorHandleObject<YGOProMsgResponseBase>[]
 ): Advancor => {
   const handlerMap = new Map<
     new (...args: any[]) => YGOProMsgResponseBase,

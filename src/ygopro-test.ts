@@ -20,6 +20,7 @@ import {
 } from './utility/evaluate-script';
 import { makeArray, MayBeArray } from 'nfkit';
 import { YGOProTestRuntimeOptions } from './ygopro-test-options';
+import { CombinedAdvancor } from './advancors';
 
 export class YGOProTest {
   duel: OcgcoreDuel;
@@ -52,7 +53,19 @@ export class YGOProTest {
   }
 
   private createDuelFromRaw() {
-    this.duel = this.core.createDuel(Math.floor(Math.random() * 0xffffffff));
+    this.duel =
+      typeof this.options.seed === 'number'
+        ? this.core.createDuel(this.options.seed)
+        : this.core.createDuelV2(
+            this.options.seed ??
+              (() => {
+                const seeds: number[] = [];
+                for (let i = 0; i < 8; i++) {
+                  seeds.push(Math.floor(Math.random() * 0x100000000));
+                }
+                return seeds;
+              })(),
+          );
     [0, 1].forEach((player) =>
       this.duel.setPlayerInfo({
         player,
@@ -76,13 +89,13 @@ export class YGOProTest {
     }
   }
 
-  advance(cb: Advancor | Uint8Array) {
+  advance(..._cb: (Advancor | Uint8Array)[]) {
     if (this.ended) {
       throw new Error('Duel has already ended.');
     }
-    if (cb instanceof Uint8Array) {
-      cb = StaticAdvancor([cb]);
-    }
+    const cb = CombinedAdvancor(
+      ..._cb.map((c) => (c instanceof Uint8Array ? StaticAdvancor(c) : c)),
+    );
     this.currentResponses = [];
     this.currentMessages = [];
     if (this.lastSelectMessage) {
@@ -125,34 +138,50 @@ export class YGOProTest {
     return this;
   }
 
-  proceed(
+  state(
     cb: (
       msg: YGOProMsgResponseBase,
     ) => Advancor | Uint8Array | undefined | void,
+  ): this;
+  state<M extends YGOProMsgResponseBase>(
+    msgClass: new (...args: any[]) => M,
+    cb: (msg: M) => Advancor | Uint8Array | undefined | void,
+  ): this;
+  state(
+    arg1:
+      | ((
+          msg: YGOProMsgResponseBase,
+        ) => Advancor | Uint8Array | undefined | void)
+      | (new (...args: any[]) => YGOProMsgResponseBase),
+    arg2?: (
+      msg: YGOProMsgResponseBase,
+    ) => Advancor | Uint8Array | undefined | void,
   ) {
-    if (this.ended) {
-      throw new Error('Duel has already ended.');
+    if (typeof arg1 === 'function' && arg2 == null) {
+      const advancorOrResponse = (
+        arg1 as (
+          msg: YGOProMsgResponseBase,
+        ) => Advancor | Uint8Array | undefined | void
+      )(this.lastSelectMessage);
+      if (advancorOrResponse == null) {
+        return this;
+      }
+      return this.advance(advancorOrResponse as any);
     }
-    const advancorOrResponse = cb(this.lastSelectMessage);
+    const msgClass = arg1 as new (...args: any[]) => YGOProMsgResponseBase;
+    const cb = arg2!;
+    if (!(this.lastSelectMessage instanceof msgClass)) {
+      throw new Error(
+        `Expected message of type [${msgClass.name}], but got [${(this.lastSelectMessage as YGOProMsgResponseBase)?.constructor.name || this.lastSelectMessage}].`,
+      );
+    }
+    const advancorOrResponse = cb(
+      this.lastSelectMessage as YGOProMsgResponseBase,
+    );
     if (advancorOrResponse == null) {
       return this;
     }
     return this.advance(advancorOrResponse as any);
-  }
-
-  state<M extends YGOProMsgResponseBase>(
-    msgClass: new (...args: any[]) => M,
-    cb: (msg: M) => Advancor | Uint8Array | undefined | void,
-  ) {
-    if (this.ended) {
-      throw new Error('Duel has already ended.');
-    }
-    if (!(this.lastSelectMessage instanceof msgClass)) {
-      throw new Error(
-        `Expected message of type [${msgClass.name}], but got [${this.lastSelectMessage?.constructor.name || this.lastSelectMessage}].`,
-      );
-    }
-    return this.proceed(cb);
   }
 
   ended = false;

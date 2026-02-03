@@ -45,9 +45,10 @@ export const createYGOProTest = async (options: YGOProTestOptions) => {
   let yrp: YGOProYrp | undefined;
   let single: string | undefined;
   if (options.yrp) {
-    options.yrp instanceof YGOProYrp
-      ? options.yrp
-      : new YGOProYrp().fromYrp(await readFile(options.yrp));
+    yrp =
+      options.yrp instanceof YGOProYrp
+        ? options.yrp
+        : new YGOProYrp().fromYrp(await readFile(options.yrp));
   } else if (options.single != null) {
     const isPath = options.single.endsWith('.lua');
     single = isPath
@@ -60,6 +61,7 @@ export const createYGOProTest = async (options: YGOProTestOptions) => {
     single,
     opt: options.opt,
     playerInfo: options.playerInfo,
+    seed: options.seed,
   });
 };
 

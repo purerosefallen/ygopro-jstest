@@ -1,6 +1,6 @@
 import { Advancor } from '../types';
 
-export const DefaultResponseAdvancor = (): Advancor => {
+export const SlientAdvancor = (): Advancor => {
   return (msg) => {
     return msg.defaultResponse();
   };

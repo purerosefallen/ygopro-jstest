@@ -12,6 +12,7 @@ export interface PlayerInfo {
 export interface YGOProTestRuntimeOptions {
   opt?: number;
   playerInfo?: PlayerInfo[];
+  seed?: number | number[];
 }
 
 export interface YGOProTestOptions extends YGOProTestRuntimeOptions {
