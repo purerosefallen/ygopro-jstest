@@ -1,5 +1,6 @@
 import {
   OcgcoreCommonConstants,
+  OcgcoreScriptConstants,
   YGOProMsgResponseBase,
 } from 'ygopro-msg-encode';
 import { createYGOProTest } from '../src/create-ygopro-test';
@@ -17,6 +18,14 @@ describe('Sample test.', () => {
         (m) => m.identifier === OcgcoreCommonConstants.MSG_NEW_TURN,
       ).length,
     ).toBe(2);
+
+    const mzone = test.getFieldCard(
+      0,
+      OcgcoreScriptConstants.LOCATION_MZONE,
+      0,
+    );
+    expect(mzone).toHaveLength(2);
+    expect(mzone[0].attack).toBeGreaterThan(0);
 
     test.end();
   });

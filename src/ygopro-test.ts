@@ -145,7 +145,7 @@ export class YGOProTest {
     return res;
   }
 
-  evaluate(script: string) {
+  evaluate<T = any>(script: string): T {
     // generate a unique token
     const token = `__eval_token_${Date.now()}_${Math.random()}__`;
     const injectScript = createEvaluateScript(script, token);
