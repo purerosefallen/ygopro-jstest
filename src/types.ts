@@ -1,9 +1,7 @@
 import { YGOProMsgResponseBase } from 'ygopro-msg-encode';
 
-export type Advancor = (
-  message: YGOProMsgResponseBase,
-) => Uint8Array | null | undefined;
-
+export type Advancor<T extends YGOProMsgResponseBase = YGOProMsgResponseBase> =
+  (message: T) => Uint8Array | null | undefined;
 
 export interface CardLocation {
   controller: number;

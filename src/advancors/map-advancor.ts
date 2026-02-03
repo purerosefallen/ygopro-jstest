@@ -1,38 +1,31 @@
 import { YGOProMsgResponseBase } from 'ygopro-msg-encode';
 import { Advancor } from '../types';
 
-export interface DefaultAdvancorHandleObjectr<T extends YGOProMsgResponseBase> {
+export interface MapAdvancorHandleObject<T extends YGOProMsgResponseBase> {
   msgClass: new (...args: any[]) => T;
   cb: (msg: T) => Uint8Array | undefined;
 }
 
-export const DefaultAdvancorHandler = <T extends YGOProMsgResponseBase>(
+export const MapAdvancorHandler = <T extends YGOProMsgResponseBase>(
   msgClass: new (...args: any[]) => T,
   cb: (msg: T) => Uint8Array | undefined,
-) => ({
+): MapAdvancorHandleObject<T> => ({
   msgClass,
   cb,
 });
 
-export const DefaultAdvancor = (
-  options: {
-    player?: number;
-    handlers?: DefaultAdvancorHandleObjectr<YGOProMsgResponseBase>[];
-  } = {},
+export const MapAdvancor = (
+  handlers: MapAdvancorHandleObject<YGOProMsgResponseBase>[],
 ): Advancor => {
   const handlerMap = new Map<
     new (...args: any[]) => YGOProMsgResponseBase,
     (msg: YGOProMsgResponseBase) => Uint8Array | undefined
   >();
-  if (options.handlers != null) {
-    for (const handler of options.handlers) {
-      handlerMap.set(handler.msgClass, handler.cb);
-    }
+  for (const handleObj of handlers) {
+    handlerMap.set(handleObj.msgClass, handleObj.cb);
   }
+
   return (msg) => {
-    if (options.player != null && msg.responsePlayer() !== options.player) {
-      return undefined;
-    }
     const cb = handlerMap.get(
       msg.constructor as new (...args: any[]) => YGOProMsgResponseBase,
     );
@@ -42,6 +35,6 @@ export const DefaultAdvancor = (
         return res;
       }
     }
-    return msg.defaultResponse();
+    return undefined;
   };
 };

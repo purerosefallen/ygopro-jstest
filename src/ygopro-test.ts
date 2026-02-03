@@ -1,5 +1,6 @@
 import {
   createDuelFromYrp,
+  OcgcoreDuel,
   OcgcoreMessageType,
   OcgcoreWrapper,
 } from 'koishipro-core.js';
@@ -17,9 +18,11 @@ import {
   createEvaluateScript,
   decodeEvaluateResult,
 } from './utility/evaluate-script';
+import { makeArray, MayBeArray } from 'nfkit';
+import { YGOProTestRuntimeOptions } from './ygopro-test-options';
 
 export class YGOProTest {
-  duel = createDuelFromYrp(this.core, this.yrp).duel;
+  duel: OcgcoreDuel;
   currentResponses: Uint8Array[] = [];
   allResponses: Uint8Array[] = [];
   currentMessages: YGOProMsgBase[] = [];
@@ -28,8 +31,12 @@ export class YGOProTest {
 
   constructor(
     private core: OcgcoreWrapper,
-    public yrp: YGOProYrp,
+    private options: {
+      yrp?: YGOProYrp;
+      single?: string;
+    } & YGOProTestRuntimeOptions = {},
   ) {
+    this.createDuel();
     this.duel.ocgcoreWrapper.setMessageHandler((duel, msg, type) => {
       if (type === OcgcoreMessageType.ScriptError) {
         throw new Error(`Script Error: ${msg}`);
@@ -37,7 +44,36 @@ export class YGOProTest {
         console.log(`Debug: ${msg}`);
       }
     });
-    this.advance(StaticAdvancor(this.yrp.responses));
+  }
+
+  private createDuelFromYrp() {
+    this.duel = createDuelFromYrp(this.core, this.options.yrp!).duel;
+    this.advance(StaticAdvancor(this.options.yrp!.responses));
+  }
+
+  private createDuelFromRaw() {
+    this.duel = this.core.createDuel(Math.floor(Math.random() * 0xffffffff));
+    [0, 1].forEach((player) =>
+      this.duel.setPlayerInfo({
+        player,
+        lp: this.options.playerInfo?.[player]?.startLp ?? 8000,
+        startHand: this.options.playerInfo?.[player]?.startHand ?? 0,
+        drawCount: this.options.playerInfo?.[player]?.drawCount ?? 0,
+      }),
+    );
+    if (this.options.single) {
+      this.evaluate(this.options.single);
+    }
+    this.duel.startDuel(this.options.opt ?? 0);
+    // this.advance(NoEffectAdvancor());
+  }
+
+  private createDuel() {
+    if (this.options.yrp) {
+      this.createDuelFromYrp();
+    } else {
+      this.createDuelFromRaw();
+    }
   }
 
   advance(cb: Advancor | Uint8Array) {
@@ -49,9 +85,18 @@ export class YGOProTest {
     }
     this.currentResponses = [];
     this.currentMessages = [];
+    if (this.lastSelectMessage) {
+      const resp = cb(this.lastSelectMessage);
+      if (!resp) {
+        // that means the caller does not want to respond
+        return this;
+      }
+      this.lastSelectMessage = null;
+      this.duel.setResponse(resp);
+    }
     while (true) {
       const result = this.duel.process();
-      if (result.message) {
+      if (result.raw.length && result.message) {
         this.currentMessages.push(result.message);
       }
       if (result.status === 2) {
@@ -80,15 +125,34 @@ export class YGOProTest {
     return this;
   }
 
-  state(cb: (ctx: this) => Advancor | Uint8Array | undefined) {
+  proceed(
+    cb: (
+      msg: YGOProMsgResponseBase,
+    ) => Advancor | Uint8Array | undefined | void,
+  ) {
     if (this.ended) {
       throw new Error('Duel has already ended.');
     }
-    const advancorOrResponse = cb(this);
+    const advancorOrResponse = cb(this.lastSelectMessage);
     if (advancorOrResponse == null) {
       return this;
     }
-    return this.advance(advancorOrResponse);
+    return this.advance(advancorOrResponse as any);
+  }
+
+  state<M extends YGOProMsgResponseBase>(
+    msgClass: new (...args: any[]) => M,
+    cb: (msg: M) => Advancor | Uint8Array | undefined | void,
+  ) {
+    if (this.ended) {
+      throw new Error('Duel has already ended.');
+    }
+    if (!(this.lastSelectMessage instanceof msgClass)) {
+      throw new Error(
+        `Expected message of type [${msgClass.name}], but got [${this.lastSelectMessage?.constructor.name || this.lastSelectMessage}].`,
+      );
+    }
+    return this.proceed(cb);
   }
 
   ended = false;
@@ -97,6 +161,37 @@ export class YGOProTest {
     this.ended = true;
     this.duel.endDuel();
     this.duel.ocgcoreWrapper.finalize();
+  }
+
+  addCard(
+    card: MayBeArray<{
+      code: number;
+      location: number;
+      controller?: number;
+      sequence?: number;
+      position?: number;
+      owner?: number;
+    }>,
+  ) {
+    const cards = makeArray(card);
+    for (const card of cards) {
+      this.duel.newCard({
+        code: card.code,
+        location: card.location,
+        owner: card.owner ?? card.controller ?? 0,
+        player: card.controller ?? 0,
+        sequence: card.sequence ?? 0,
+        position:
+          card.position ??
+          (card.location &
+          (OcgcoreScriptConstants.LOCATION_MZONE |
+            OcgcoreScriptConstants.LOCATION_GRAVE |
+            OcgcoreScriptConstants.LOCATION_REMOVED)
+            ? OcgcoreScriptConstants.POS_FACEUP_ATTACK
+            : OcgcoreScriptConstants.POS_FACEDOWN_DEFENSE),
+      });
+    }
+    return this;
   }
 
   getCard(cardLocation: CardLocation, forced = false) {
@@ -120,8 +215,8 @@ export class YGOProTest {
     const opp = 1 - player;
     const res: CardHandle[] = [];
     for (const query of [
-      { p: player, player, loc: s_location },
-      { p: opp, player: opp, loc: o_location },
+      { player, loc: s_location },
+      { player: opp, loc: o_location },
     ]) {
       for (
         let location = OcgcoreScriptConstants.LOCATION_DECK;
@@ -130,7 +225,7 @@ export class YGOProTest {
       ) {
         if ((query.loc & location) === 0) continue;
         const fieldQuery = this.duel.queryFieldCard({
-          player: query.p,
+          player: query.player,
           location,
           queryFlag: 0xefffff,
         });

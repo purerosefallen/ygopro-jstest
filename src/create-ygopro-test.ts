@@ -9,7 +9,7 @@ import {
 } from 'koishipro-core.js';
 import { YGOProYrp } from 'ygopro-yrp-encode';
 import { readFile } from './utility/read-file';
-import { makeArray } from 'nfkit';
+import { Awaitable, makeArray } from 'nfkit';
 import { YGOProTest } from './ygopro-test';
 
 export const createYGOProTest = async (options: YGOProTestOptions) => {
@@ -42,10 +42,35 @@ export const createYGOProTest = async (options: YGOProTestOptions) => {
     }
   }
 
-  const yrp =
+  let yrp: YGOProYrp | undefined;
+  let single: string | undefined;
+  if (options.yrp) {
     options.yrp instanceof YGOProYrp
       ? options.yrp
       : new YGOProYrp().fromYrp(await readFile(options.yrp));
+  } else if (options.single != null) {
+    const isPath = options.single.endsWith('.lua');
+    single = isPath
+      ? Buffer.from(await readFile(options.single)).toString('utf-8')
+      : options.single;
+  }
 
-  return new YGOProTest(ocgcore, yrp);
+  return new YGOProTest(ocgcore, {
+    yrp,
+    single,
+    opt: options.opt,
+    playerInfo: options.playerInfo,
+  });
+};
+
+export const useYGOProTest = async (
+  options: YGOProTestOptions,
+  cb: (test: YGOProTest) => Awaitable<any>,
+) => {
+  const test = await createYGOProTest(options);
+  try {
+    await cb(test);
+  } finally {
+    test.end();
+  }
 };
