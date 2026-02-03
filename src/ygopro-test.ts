@@ -1,4 +1,8 @@
-import { createDuelFromYrp, OcgcoreMessageType, OcgcoreWrapper } from 'koishipro-core.js';
+import {
+  createDuelFromYrp,
+  OcgcoreMessageType,
+  OcgcoreWrapper,
+} from 'koishipro-core.js';
 import {
   OcgcoreScriptConstants,
   YGOProMsgBase,
@@ -9,7 +13,10 @@ import { StaticAdvancor } from './advancors/static-advancor';
 import { Advancor } from './types';
 import { CardLocation } from './types';
 import { CardHandle } from './card-handle';
-import { createEvaluateScript, decodeEvaluateResult } from './utility/evaluate-script';
+import {
+  createEvaluateScript,
+  decodeEvaluateResult,
+} from './utility/evaluate-script';
 
 export class YGOProTest {
   duel = createDuelFromYrp(this.core, this.yrp).duel;
@@ -20,7 +27,7 @@ export class YGOProTest {
   lastSelectMessage: YGOProMsgResponseBase | null = null;
 
   constructor(
-    public core: OcgcoreWrapper,
+    private core: OcgcoreWrapper,
     public yrp: YGOProYrp,
   ) {
     this.duel.ocgcoreWrapper.setMessageHandler((duel, msg, type) => {
@@ -29,7 +36,7 @@ export class YGOProTest {
       } else {
         console.log(`Debug: ${msg}`);
       }
-    })
+    });
     this.advance(StaticAdvancor(this.yrp.responses));
   }
 
@@ -163,5 +170,10 @@ export class YGOProTest {
       throw new Error('Evaluation failed.');
     }
     return decodeEvaluateResult(this, res.text);
+  }
+
+  getLP(player: number) {
+    const info = this.duel.queryFieldInfo();
+    return info.field.players[player].lp;
   }
 }

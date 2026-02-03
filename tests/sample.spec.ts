@@ -27,6 +27,9 @@ describe('Sample test.', () => {
     expect(mzone).toHaveLength(2);
     expect(mzone[0].attack).toBeGreaterThan(0);
 
+    expect(test.getLP(0)).toBe(8000);
+    expect(test.getLP(1)).toBe(8000);
+
     test.end();
   });
 });
