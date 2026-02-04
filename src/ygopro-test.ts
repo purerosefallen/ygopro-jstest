@@ -5,7 +5,9 @@ import {
   OcgcoreWrapper,
 } from 'koishipro-core.js';
 import {
+  CardData,
   OcgcoreScriptConstants,
+  YGOProMsgAnnounceCard,
   YGOProMsgBase,
   YGOProMsgResponseBase,
 } from 'ygopro-msg-encode';
@@ -299,5 +301,16 @@ export class YGOProTest {
   getLP(player: number) {
     const info = this.duel.queryFieldInfo();
     return info.field.players[player].lp;
+  }
+
+  canDeclareCard(code: number, opcodes: number[] | YGOProMsgAnnounceCard) {
+    if (opcodes instanceof YGOProMsgAnnounceCard) {
+      opcodes = opcodes.opcodes;
+    }
+    const card = this.duel.ocgcoreWrapper.readCard(code);
+    if (!card) {
+      return false;
+    }
+    return new CardData().fromPartial(card).isDeclarable(opcodes);
   }
 }
