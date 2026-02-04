@@ -1,21 +1,21 @@
 import {
   OcgcoreScriptConstants,
   YGOProMsgDraw,
-  YGOProMsgSelectCard,
   YGOProMsgSelectChain,
   YGOProMsgSelectEffectYn,
   YGOProMsgSelectIdleCmd,
-  YGOProMsgSelectSum,
 } from 'ygopro-msg-encode';
-import {
-  SlientAdvancor,
-  NoEffectAdvancor,
-  SummonPlaceAdvancor,
-} from '../src/advancors';
 import { useYGOProTest } from '../src/create-ygopro-test';
 import { YGOProTest } from '../src/ygopro-test';
 import path from 'node:path';
-import { SelectCardAdvancor } from '../src/advancors/select-card-advancor';
+import {
+  SelectCardAdvancor,
+  SlientAdvancor,
+  SummonPlaceAdvancor,
+  NoEffectAdvancor,
+} from 'koishipro-core.js';
+import { YGOProYrp } from 'ygopro-yrp-encode';
+import { readFileSync } from 'node:fs';
 
 describe('Standalone', () => {
   const testProcess = (ctx: YGOProTest) =>
@@ -25,8 +25,18 @@ describe('Standalone', () => {
         expect(
           ctx.allMessages.find((m) => m instanceof YGOProMsgDraw),
         ).toBeUndefined(); // make sure it does not draw any card
+        const deck = ctx.getFieldCard(0, OcgcoreScriptConstants.LOCATION_DECK);
+        expect(deck).toHaveLength(1);
+        const ex = ctx.getFieldCard(0, OcgcoreScriptConstants.LOCATION_EXTRA);
+        expect(ex).toHaveLength(1);
         const hand = ctx.getFieldCard(0, OcgcoreScriptConstants.LOCATION_HAND);
         expect(hand).toHaveLength(2);
+
+        const oppHand = ctx.getFieldCard(
+          1,
+          OcgcoreScriptConstants.LOCATION_HAND,
+        );
+        expect(oppHand).toHaveLength(1);
         const c1 = hand.find((c) => c.code === 28985331);
         const c2 = hand.find((c) => c.code === 10000000);
         expect(c1).toBeDefined();
@@ -106,7 +116,7 @@ describe('Standalone', () => {
   it('Should process duel', async () => {
     await useYGOProTest(
       {
-        ygoproPath: '/home/nanahira/ygo/ygopro',
+        ygoproPath: process.env.HOME + '/ygo/ygopro',
       },
       (ctx) =>
         testProcess(
@@ -139,7 +149,7 @@ describe('Standalone', () => {
   it('Should process with puzzle', async () => {
     await useYGOProTest(
       {
-        ygoproPath: '/home/nanahira/ygo/ygopro',
+        ygoproPath: process.env.HOME + '/ygo/ygopro',
         single: `
 Debug.SetAIName("as")
 Debug.ReloadFieldBegin(DUEL_ATTACK_FIRST_TURN)
@@ -160,18 +170,23 @@ Debug.ReloadFieldEnd()
   it('Should process with filename puzzle', async () => {
     await useYGOProTest(
       {
-        ygoproPath: '/home/nanahira/ygo/ygopro',
-        single: path.join(__dirname, 'single', 'standalone-test.lua'),
+        ygoproPath: process.env.HOME + '/ygo/ygopro',
+        single: path.join(__dirname, 'single', 'jstest.lua'),
       },
       testProcess,
     );
   });
   it('Should process with YRP using puzzle', async () => {
+    expect(
+      new YGOProYrp().fromYrp(
+        readFileSync(path.join(__dirname, 'standalone-test.yrp')),
+      ).singleScript,
+    ).toBe('jstest.lua');
     await useYGOProTest(
       {
         scriptPath: __dirname,
         yrp: path.join(__dirname, 'standalone-test.yrp'),
-        ygoproPath: '/home/nanahira/ygo/ygopro',
+        ygoproPath: process.env.HOME + '/ygo/ygopro',
       },
       testProcess,
     );

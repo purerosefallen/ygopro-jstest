@@ -1,8 +1,12 @@
 import {
+  Advancor,
+  CardLocation,
+  CombinedAdvancor,
   createDuelFromYrp,
   OcgcoreDuel,
   OcgcoreMessageType,
   OcgcoreWrapper,
+  StaticAdvancor,
 } from 'koishipro-core.js';
 import {
   CardData,
@@ -12,9 +16,6 @@ import {
   YGOProMsgResponseBase,
 } from 'ygopro-msg-encode';
 import { YGOProYrp } from 'ygopro-yrp-encode';
-import { StaticAdvancor } from './advancors/static-advancor';
-import { Advancor } from './types';
-import { CardLocation } from './types';
 import { CardHandle } from './card-handle';
 import {
   createEvaluateScript,
@@ -22,7 +23,6 @@ import {
 } from './utility/evaluate-script';
 import { makeArray, MayBeArray } from 'nfkit';
 import { YGOProTestRuntimeOptions } from './ygopro-test-options';
-import { CombinedAdvancor } from './advancors';
 
 export class YGOProTest {
   duel: OcgcoreDuel;

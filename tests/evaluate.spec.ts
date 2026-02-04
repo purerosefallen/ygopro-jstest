@@ -4,7 +4,7 @@ import { createYGOProTest } from '../src/create-ygopro-test';
 describe('Evaluate script.', () => {
   it('should serialize supported values', async () => {
     const test = await createYGOProTest({
-      ygoproPath: '/home/nanahira/ygo/ygopro',
+      ygoproPath: process.env.HOME + '/ygo/ygopro',
       yrp: './tests/test.yrp',
     });
 
@@ -52,7 +52,7 @@ return {
 
   it('should serialize nil as null', async () => {
     const test = await createYGOProTest({
-      ygoproPath: '/home/nanahira/ygo/ygopro',
+      ygoproPath: process.env.HOME + '/ygo/ygopro',
       yrp: './tests/test.yrp',
     });
 
