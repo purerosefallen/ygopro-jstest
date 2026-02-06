@@ -48,6 +48,7 @@ export class YGOProTest {
         console.log(`Debug: ${msg}`);
       }
     });
+    this.checkScriptErrors();
   }
 
   private createDuelFromYrp() {
