@@ -174,6 +174,8 @@ export class YGOProTest {
       msg: YGOProMsgResponseBase,
     ) => Advancor | Uint8Array | undefined | void,
   ) {
+    const snapshot = this.querySnapshot();
+    console.log(this.formatSnapshot(snapshot));
     const advanceFrom = (
       advancorOrResponse: Advancor | Uint8Array | undefined | void,
     ) => {
@@ -295,6 +297,87 @@ export class YGOProTest {
       }
     }
     return res;
+  }
+
+  querySnapshot() {
+    const cards = this.getFieldCard(0, 0xff, 0xff).map((card) => {
+      const cardInfo = this.duel.ocgcoreWrapper.readCard(card.code ?? 0);
+      return {
+        ...card,
+        name: cardInfo?.name ?? null,
+      } as Partial<CardHandle> & { name: string | null };
+    });
+    const fieldInfo = this.duel.queryFieldInfo();
+    const lp = fieldInfo.field.players.map((player) => player.lp);
+    const chains = fieldInfo.field.chains;
+    return {
+      cards,
+      lp,
+      chains,
+    };
+  }
+
+  private formatSnapshot(snapshot: ReturnType<YGOProTest['querySnapshot']>) {
+    const formatCardName = (card: (typeof snapshot.cards)[number]) => {
+      const name = card.name ?? (card.code ? `#${card.code}` : 'Unknown');
+      return `#${card.sequence} ${name}`;
+    };
+
+    const byPlayer = (player: number) =>
+      snapshot.cards.filter((card) => card.controller === player);
+
+    const byLocation = (
+      cards: (typeof snapshot.cards)[number][],
+      loc: number,
+    ) =>
+      cards
+        .filter((card) => card.location === loc)
+        .sort((a, b) => a.sequence - b.sequence)
+        .map(formatCardName);
+
+    const formatZone = (label: string, cards: string[]) =>
+      `${label}: ${cards.length ? cards.join(', ') : '(empty)'}`;
+
+    const formatPlayer = (player: number) => {
+      const cards = byPlayer(player);
+      const mzone = byLocation(cards, OcgcoreScriptConstants.LOCATION_MZONE);
+      const szone = byLocation(cards, OcgcoreScriptConstants.LOCATION_SZONE);
+      const hand = byLocation(cards, OcgcoreScriptConstants.LOCATION_HAND);
+      const grave = byLocation(cards, OcgcoreScriptConstants.LOCATION_GRAVE);
+      const removed = byLocation(
+        cards,
+        OcgcoreScriptConstants.LOCATION_REMOVED,
+      );
+      return [
+        `********* Player ${player} *********`,
+        formatZone('Hand', hand),
+        formatZone('Spell', szone),
+        formatZone('Monster', mzone),
+        formatZone('Grave', grave),
+        formatZone('Removed', removed),
+      ];
+    };
+
+    const chainInfo = snapshot.chains.length
+      ? snapshot.chains
+          .map((chain, index) => {
+            const cardInfo = this.duel.ocgcoreWrapper.readCard(chain.code) as
+              | (Partial<CardData> & { name?: string })
+              | null;
+            const name = cardInfo?.name ?? `#${chain.code}`;
+            return `${index + 1}:${name}@${chain.chainCardController}/${chain.chainCardLocation}/${chain.chainCardSequence}`;
+          })
+          .join(', ')
+      : '(none)';
+
+    return [
+      '********* Field Snapshot *********',
+      `LP: P0 ${snapshot.lp[0]} | P1 ${snapshot.lp[1]}`,
+      `Chain: ${chainInfo}`,
+      ...formatPlayer(0),
+      ...formatPlayer(1),
+      '********* Finish *********',
+    ].join('\n');
   }
 
   evaluate<T = any>(script: string): T {
