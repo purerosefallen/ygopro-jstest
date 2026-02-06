@@ -24,6 +24,9 @@ export const createYGOProTest = async (options: YGOProTestOptions) => {
           ? cdb
           : new SQL.Database(await readFile(cdb));
       ocgcore.setCardReader(SqljsCardReader(sqlDatabase));
+      try {
+        sqlDatabase.close();
+      } catch {}
     }
   }
 

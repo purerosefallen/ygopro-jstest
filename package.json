@@ -68,7 +68,7 @@
   },
   "dependencies": {
     "cosmokit": "^1.8.1",
-    "koishipro-core.js": "^1.2.2",
+    "koishipro-core.js": "^1.2.7",
     "nfkit": "^1.0.14",
     "sql.js": "^1.13.0",
     "ygopro-msg-encode": "^1.1.2",
