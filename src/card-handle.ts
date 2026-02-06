@@ -197,7 +197,7 @@ export class CardHandle extends CardQuery implements CardLocation {
     return this.canPerformAction(() => this.activate(desc));
   }
 
-  canSelect() {
+  canSelect(allowUnselect = false) {
     const msg = this.tester.lastSelectMessage;
     if (msg instanceof YGOProMsgSelectCard) {
       return !!this.findSelfInList(msg.cards);
@@ -205,7 +205,7 @@ export class CardHandle extends CardQuery implements CardLocation {
     if (msg instanceof YGOProMsgSelectUnselectCard) {
       return !!this.findSelfInList([
         ...msg.selectableCards,
-        ...msg.unselectableCards,
+        ...(allowUnselect ? msg.unselectableCards : []),
       ]);
     }
     if (msg instanceof YGOProMsgSelectTribute) {
