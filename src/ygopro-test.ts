@@ -107,8 +107,8 @@ export class YGOProTest {
     const cb = CombinedAdvancor(
       ..._cb.map((c) => (c instanceof Uint8Array ? StaticAdvancor(c) : c)),
     );
-    this.currentResponses = [];
-    this.currentMessages = [];
+    // this.currentResponses = [];
+    // this.currentMessages = [];
     if (this.lastSelectMessage) {
       const resp = cb(this.lastSelectMessage);
       if (!resp) {
@@ -150,6 +150,11 @@ export class YGOProTest {
     return this;
   }
 
+  private clearCurrentMessages() {
+    this.currentMessages = [];
+    this.currentResponses = [];
+  }
+
   state(
     cb: (
       msg: YGOProMsgResponseBase,
@@ -175,6 +180,7 @@ export class YGOProTest {
           msg: YGOProMsgResponseBase,
         ) => Advancor | Uint8Array | undefined | void
       )(this.lastSelectMessage);
+      this.clearCurrentMessages();
       if (advancorOrResponse == null) {
         return this;
       }
@@ -190,6 +196,7 @@ export class YGOProTest {
     const advancorOrResponse = cb(
       this.lastSelectMessage as YGOProMsgResponseBase,
     );
+    this.clearCurrentMessages();
     if (advancorOrResponse == null) {
       return this;
     }
