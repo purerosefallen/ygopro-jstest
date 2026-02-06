@@ -31,6 +31,7 @@ export class YGOProTest {
   currentMessages: YGOProMsgBase[] = [];
   allMessages: YGOProMsgBase[] = [];
   lastSelectMessage: YGOProMsgResponseBase | null = null;
+  private errors: string[] = [];
 
   constructor(
     private core: OcgcoreWrapper,
@@ -42,7 +43,7 @@ export class YGOProTest {
     this.createDuel();
     this.duel.ocgcoreWrapper.setMessageHandler((duel, msg, type) => {
       if (type === OcgcoreMessageType.ScriptError) {
-        throw new Error(`Script Error: ${msg}`);
+        this.errors.push(`Script Error: ${msg}`);
       } else {
         console.log(`Debug: ${msg}`);
       }
@@ -91,6 +92,13 @@ export class YGOProTest {
     }
   }
 
+  private checkScriptErrors() {
+    if (!this.errors.length) return;
+    const msg = this.errors.join('\n');
+    this.errors = [];
+    throw new Error(msg);
+  }
+
   advance(..._cb: (Advancor | Uint8Array)[]) {
     if (this.ended) {
       throw new Error('Duel has already ended.');
@@ -111,6 +119,7 @@ export class YGOProTest {
     }
     while (true) {
       const result = this.duel.process();
+      this.checkScriptErrors();
       if (result.raw.length && result.message) {
         this.currentMessages.push(result.message);
       }
@@ -221,6 +230,7 @@ export class YGOProTest {
             ? OcgcoreScriptConstants.POS_FACEUP_ATTACK
             : OcgcoreScriptConstants.POS_FACEDOWN_DEFENSE),
       });
+      this.checkScriptErrors();
     }
     return this;
   }
@@ -289,6 +299,7 @@ export class YGOProTest {
       return undefined;
     });
     this.duel.preloadScript(`./script/${token}.lua`);
+    this.checkScriptErrors();
     this.duel.ocgcoreWrapper.scriptReaders.pop();
     const res = this.duel.getRegistryValue(token);
     this.duel.setRegistryValue(token, '');
