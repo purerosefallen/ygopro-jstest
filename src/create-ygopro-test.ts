@@ -19,14 +19,12 @@ export const createYGOProTest = async (options: YGOProTestOptions) => {
   if (options.cdb) {
     const cdbs = makeArray(options.cdb);
     for (const cdb of cdbs) {
-      const sqlDatabase =
-        cdb instanceof SQL.Database
-          ? cdb
-          : new SQL.Database(await readFile(cdb));
-      ocgcore.setCardReader(SqljsCardReader(sqlDatabase));
-      try {
-        sqlDatabase.close();
-      } catch {}
+      if (cdb instanceof SQL.Database) {
+        ocgcore.setCardReader(SqljsCardReader(cdb));
+      } else {
+        const buf = await readFile(cdb);
+        ocgcore.setCardReader(SqljsCardReader(SQL, buf));
+      }
     }
   }
 
