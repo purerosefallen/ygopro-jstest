@@ -64,4 +64,23 @@ return nil
 
     test.end();
   });
+
+  it('should throw on script error', async () => {
+    const test = await createYGOProTest({
+      ygoproPath: process.env.HOME + '/ygo/ygopro',
+      yrp: './tests/test.yrp',
+    });
+
+    try {
+      expect(() =>
+        test.evaluate(`
+-- intentional lua syntax error
+local a =
+return a
+`),
+      ).toThrow(/Script Error:/);
+    } finally {
+      test.end();
+    }
+  });
 });
