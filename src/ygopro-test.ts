@@ -40,14 +40,14 @@ export class YGOProTest {
       single?: string;
     } & YGOProTestRuntimeOptions = {},
   ) {
-    this.createDuel();
-    this.duel.ocgcoreWrapper.setMessageHandler((duel, msg, type) => {
+    this.core.setMessageHandler((duel, msg, type) => {
       if (type === OcgcoreMessageType.ScriptError) {
-        this.errors.push(`Script Error: ${msg}`);
+        this.errors.push(msg);
       } else {
         console.log(`Debug: ${msg}`);
       }
     });
+    this.createDuel();
     this.checkScriptErrors();
   }
 
@@ -95,7 +95,7 @@ export class YGOProTest {
 
   private checkScriptErrors() {
     if (!this.errors.length) return;
-    const msg = this.errors.join('\n');
+    const msg = this.errors.map((e) => `Script Error: ${e}`).join('\n');
     this.errors = [];
     throw new Error(msg);
   }
