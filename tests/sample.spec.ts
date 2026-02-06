@@ -8,7 +8,7 @@ import { createYGOProTest } from '../src/create-ygopro-test';
 describe('Sample test.', () => {
   it('should load', async () => {
     const test = await createYGOProTest({
-      ygoproPath: '/home/nanahira/ygo/ygopro',
+      ygoproPath: process.env.HOME + '/ygo/ygopro',
       yrp: './tests/test.yrp',
     });
 

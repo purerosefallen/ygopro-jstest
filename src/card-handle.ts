@@ -11,9 +11,10 @@ import {
   YGOProMsgSelectTribute,
   YGOProMsgSelectUnselectCard,
 } from 'ygopro-msg-encode';
+
 import { YGOProTest } from './ygopro-test';
-import { CardLocation } from './types';
 import { pick } from 'cosmokit';
+import { CardLocation } from 'koishipro-core.js';
 
 export class CardHandle extends CardQuery implements CardLocation {
   constructor(
