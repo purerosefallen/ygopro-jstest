@@ -174,17 +174,22 @@ export class YGOProTest {
       msg: YGOProMsgResponseBase,
     ) => Advancor | Uint8Array | undefined | void,
   ) {
+    const advanceFrom = (
+      advancorOrResponse: Advancor | Uint8Array | undefined | void,
+    ) => {
+      this.clearCurrentMessages();
+      if (advancorOrResponse == null) {
+        return this;
+      }
+      return this.advance(advancorOrResponse as any);
+    };
     if (typeof arg1 === 'function' && arg2 == null) {
       const advancorOrResponse = (
         arg1 as (
           msg: YGOProMsgResponseBase,
         ) => Advancor | Uint8Array | undefined | void
       )(this.lastSelectMessage);
-      this.clearCurrentMessages();
-      if (advancorOrResponse == null) {
-        return this;
-      }
-      return this.advance(advancorOrResponse as any);
+      return advanceFrom(advancorOrResponse);
     }
     const msgClass = arg1 as new (...args: any[]) => YGOProMsgResponseBase;
     const cb = arg2!;
@@ -196,11 +201,7 @@ export class YGOProTest {
     const advancorOrResponse = cb(
       this.lastSelectMessage as YGOProMsgResponseBase,
     );
-    this.clearCurrentMessages();
-    if (advancorOrResponse == null) {
-      return this;
-    }
-    return this.advance(advancorOrResponse as any);
+    return advanceFrom(advancorOrResponse);
   }
 
   ended = false;
