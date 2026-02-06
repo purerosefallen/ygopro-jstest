@@ -8,6 +8,7 @@ import {
 import { useYGOProTest } from '../src/create-ygopro-test';
 import { YGOProTest } from '../src/ygopro-test';
 import path from 'node:path';
+import os from 'node:os';
 import {
   SelectCardAdvancor,
   SlientAdvancor,
@@ -116,7 +117,7 @@ describe('Standalone', () => {
   it('Should process duel', async () => {
     await useYGOProTest(
       {
-        ygoproPath: process.env.HOME + '/ygo/ygopro',
+        ygoproPath: path.join(os.homedir(), 'ygo', 'ygopro'),
       },
       (ctx) =>
         testProcess(
@@ -149,7 +150,7 @@ describe('Standalone', () => {
   it('Should process with puzzle', async () => {
     await useYGOProTest(
       {
-        ygoproPath: process.env.HOME + '/ygo/ygopro',
+        ygoproPath: path.join(os.homedir(), 'ygo', 'ygopro'),
         single: `
 Debug.SetAIName("as")
 Debug.ReloadFieldBegin(DUEL_ATTACK_FIRST_TURN)
@@ -170,7 +171,7 @@ Debug.ReloadFieldEnd()
   it('Should process with filename puzzle', async () => {
     await useYGOProTest(
       {
-        ygoproPath: process.env.HOME + '/ygo/ygopro',
+        ygoproPath: path.join(os.homedir(), 'ygo', 'ygopro'),
         single: path.join(__dirname, 'single', 'jstest.lua'),
       },
       testProcess,
@@ -186,7 +187,7 @@ Debug.ReloadFieldEnd()
       {
         scriptPath: __dirname,
         yrp: path.join(__dirname, 'standalone-test.yrp'),
-        ygoproPath: process.env.HOME + '/ygo/ygopro',
+        ygoproPath: path.join(os.homedir(), 'ygo', 'ygopro'),
       },
       testProcess,
     );

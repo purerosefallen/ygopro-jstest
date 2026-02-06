@@ -4,11 +4,13 @@ import {
   YGOProMsgResponseBase,
 } from 'ygopro-msg-encode';
 import { createYGOProTest } from '../src/create-ygopro-test';
+import os from 'node:os';
+import path from 'node:path';
 
 describe('Sample test.', () => {
   it('should load', async () => {
     const test = await createYGOProTest({
-      ygoproPath: process.env.HOME + '/ygo/ygopro',
+      ygoproPath: path.join(os.homedir(), 'ygo', 'ygopro'),
       yrp: './tests/test.yrp',
     });
 

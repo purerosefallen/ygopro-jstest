@@ -1,10 +1,12 @@
 import { OcgcoreScriptConstants } from 'ygopro-msg-encode';
 import { createYGOProTest } from '../src/create-ygopro-test';
+import os from 'node:os';
+import path from 'node:path';
 
 describe('Evaluate script.', () => {
   it('should serialize supported values', async () => {
     const test = await createYGOProTest({
-      ygoproPath: process.env.HOME + '/ygo/ygopro',
+      ygoproPath: path.join(os.homedir(), 'ygo', 'ygopro'),
       yrp: './tests/test.yrp',
     });
 
@@ -52,7 +54,7 @@ return {
 
   it('should serialize nil as null', async () => {
     const test = await createYGOProTest({
-      ygoproPath: process.env.HOME + '/ygo/ygopro',
+      ygoproPath: path.join(os.homedir(), 'ygo', 'ygopro'),
       yrp: './tests/test.yrp',
     });
 
@@ -67,7 +69,7 @@ return nil
 
   it('should throw on script error', async () => {
     const test = await createYGOProTest({
-      ygoproPath: process.env.HOME + '/ygo/ygopro',
+      ygoproPath: path.join(os.homedir(), 'ygo', 'ygopro'),
       yrp: './tests/test.yrp',
     });
 
