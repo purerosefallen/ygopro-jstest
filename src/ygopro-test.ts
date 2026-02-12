@@ -311,6 +311,7 @@ export class YGOProTest {
       const cardInfo = this.duel.ocgcoreWrapper.readCard(card.code ?? 0);
       return {
         ...card,
+        tester: undefined,
         name: cardInfo?.name ?? null,
       } as Partial<CardHandle> & { name: string | null };
     });
