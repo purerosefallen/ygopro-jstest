@@ -14,6 +14,7 @@ import {
   YGOProMsgAnnounceCard,
   YGOProMsgBase,
   YGOProMsgResponseBase,
+  YGOProMsgRetry,
 } from 'ygopro-msg-encode';
 import { YGOProYrp } from 'ygopro-yrp-encode';
 import { CardHandle } from './card-handle';
@@ -122,19 +123,17 @@ export class YGOProTest {
     while (true) {
       const result = this.duel.process();
       this.checkScriptErrors();
-      if (result.raw.length && result.message) {
-        this.currentMessages.push(result.message);
+      if (result.raw.length && result.messages?.length) {
+        this.currentMessages.push(...result.messages);
       }
+      const lastMessage = this.currentMessages[this.currentMessages.length - 1];
       if (result.status === 2) {
         this.ended = true;
         break;
-      } else if (result.status === 1 && result.raw.length) {
-        if (!(result.message instanceof YGOProMsgResponseBase)) {
-          throw new Error(
-            `Expected response message, but got ${result.message?.constructor.name}.`,
-          );
-        }
-        const response = cb(result.message as YGOProMsgResponseBase);
+      } else if (lastMessage instanceof YGOProMsgRetry) {
+        throw new Error('Got MSG_RETRY.');
+      } else if (lastMessage instanceof YGOProMsgResponseBase) {
+        const response = cb(lastMessage);
         if (!response) {
           break;
         }
