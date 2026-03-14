@@ -1,7 +1,7 @@
 {
   "name": "ygopro-jstest",
   "description": "YGOPro test utilities in JS/TS",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -68,10 +68,10 @@
   },
   "dependencies": {
     "cosmokit": "^1.8.1",
-    "koishipro-core.js": "^1.3.4",
+    "koishipro-core.js": "^1.3.10",
     "nfkit": "^1.0.14",
     "sql.js": "^1.13.0",
-    "ygopro-msg-encode": "^1.1.20",
+    "ygopro-msg-encode": "^1.1.31",
     "ygopro-yrp-encode": "^1.0.1"
   }
 }
