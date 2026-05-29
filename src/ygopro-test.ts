@@ -25,6 +25,7 @@ import {
 } from './utility/evaluate-script';
 import { formatSnapshot } from './utility/format-snapshot';
 import { makeArray, MayBeArray } from 'nfkit';
+import { omit } from 'cosmokit';
 import { YGOProTestRuntimeOptions } from './ygopro-test-options';
 
 export class YGOProTest {
@@ -373,8 +374,7 @@ export class YGOProTest {
     const cards = this.getFieldCard(0, 0xff, 0xff).map((card) => {
       const cardInfo = this.duel.ocgcoreWrapper.readCard(card.code ?? 0);
       return {
-        ...card,
-        tester: undefined,
+        ...omit(card, ['tester']),
         name: cardInfo?.name ?? null,
       } as Partial<CardHandle> & { name: string | null };
     });
