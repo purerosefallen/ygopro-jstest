@@ -3,6 +3,7 @@ import {
   CardLocation,
   CombinedAdvancor,
   createDuelFromYrp,
+  LEN_EMPTY,
   OcgcoreDuel,
   OcgcoreMessageType,
   OcgcoreWrapper,
@@ -220,6 +221,68 @@ export class YGOProTest {
     this.duel.ocgcoreWrapper.finalize();
   }
 
+  private findAvailableFieldSequence(player: number, location: number) {
+    const usedSequences = new Set<number>();
+    const fieldQuery = this.duel.queryFieldCard(
+      {
+        player,
+        location,
+        queryFlag: 0,
+      },
+      { noParse: true },
+    );
+    // With queryFlag 0, occupied field slots are LEN_HEADER-sized chunks,
+    // but parsed CardQuery would still have flags 0 and look empty.
+    const view = new DataView(
+      fieldQuery.raw.buffer,
+      fieldQuery.raw.byteOffset,
+      fieldQuery.raw.byteLength,
+    );
+    let offset = 0;
+
+    for (
+      let sequence = 0;
+      sequence <= 4 && offset + 4 <= view.byteLength;
+      sequence++
+    ) {
+      const chunkLength = view.getInt32(offset, true);
+      if (chunkLength <= 0) {
+        break;
+      }
+      if (chunkLength > LEN_EMPTY) {
+        usedSequences.add(sequence);
+      }
+      offset += chunkLength;
+    }
+
+    for (let i = 0; i <= 4; i++) {
+      if (!usedSequences.has(i)) {
+        return i;
+      }
+    }
+
+    throw new Error(
+      `No available sequence in location ${location} for player ${player}.`,
+    );
+  }
+
+  private resolveCardSequence(card: {
+    location: number;
+    controller?: number;
+    sequence?: number;
+  }) {
+    if (card.sequence != null) {
+      return card.sequence;
+    }
+    if (
+      card.location !== OcgcoreScriptConstants.LOCATION_MZONE &&
+      card.location !== OcgcoreScriptConstants.LOCATION_SZONE
+    ) {
+      return 0;
+    }
+    return this.findAvailableFieldSequence(card.controller ?? 0, card.location);
+  }
+
   addCard(
     card: MayBeArray<{
       code: number;
@@ -232,12 +295,13 @@ export class YGOProTest {
   ) {
     const cards = makeArray(card);
     for (const card of cards) {
+      const sequence = this.resolveCardSequence(card);
       this.duel.newCard({
         code: card.code,
         location: card.location,
         owner: card.owner ?? card.controller ?? 0,
         player: card.controller ?? 0,
-        sequence: card.sequence ?? 0,
+        sequence,
         position:
           card.position ??
           (card.location &
