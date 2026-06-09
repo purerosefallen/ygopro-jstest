@@ -58,6 +58,7 @@ export const createYGOProTest = async (options: YGOProTestOptions) => {
   }
 
   return new YGOProTest(ocgcore, {
+    coverage: options.coverage,
     yrp,
     single,
     opt: options.opt,

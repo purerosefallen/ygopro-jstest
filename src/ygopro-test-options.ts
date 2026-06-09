@@ -10,6 +10,7 @@ export interface PlayerInfo {
 }
 
 export interface YGOProTestRuntimeOptions {
+  coverage?: boolean;
   opt?: number;
   playerInfo?: PlayerInfo[];
   seed?: number | number[];

@@ -17,8 +17,34 @@ import {
 } from 'koishipro-core.js';
 import { YGOProYrp } from 'ygopro-yrp-encode';
 import { readFileSync } from 'node:fs';
+import { LuaLineCoverageMap } from '../src/utility/lua-coverage';
 
 describe('Standalone', () => {
+  const logCoverageSummary = (label: string, coverages: LuaLineCoverageMap) => {
+    const rows = Object.values(coverages)
+      .filter((coverage) => /^c\d+\.lua$/.test(coverage.file))
+      .sort((left, right) => left.file.localeCompare(right.file))
+      .map((coverage) => {
+        const executable = coverage.executableLines?.length ?? 0;
+        const ratio =
+          coverage.lineCoverage == null
+            ? 'n/a'
+            : `${(coverage.lineCoverage * 100).toFixed(1)}%`;
+        return `${coverage.file}: covered=${coverage.coveredLines.length}, executable=${executable}, ratio=${ratio}`;
+      });
+
+    console.log(`[Lua coverage] ${label}\n${rows.join('\n')}`);
+  };
+
+  const expectStandaloneCoverage = (ctx: YGOProTest, label: string) => {
+    const coverages = ctx.getAllCoverages();
+    for (const file of ['c28985331.lua', 'c5560911.lua', 'c73580471.lua']) {
+      expect(coverages[file]?.coveredLines.length ?? 0).toBeGreaterThan(0);
+      expect(coverages[file]?.executableLines?.length ?? 0).toBeGreaterThan(0);
+    }
+    logCoverageSummary(label, coverages);
+  };
+
   const testProcess = (ctx: YGOProTest) =>
     ctx
       .advance(SlientAdvancor())
@@ -117,9 +143,10 @@ describe('Standalone', () => {
   it('Should process duel', async () => {
     await useYGOProTest(
       {
+        coverage: true,
         ygoproPath: path.join(os.homedir(), 'ygo', 'ygopro'),
       },
-      (ctx) =>
+      (ctx) => {
         testProcess(
           ctx.addCard([
             {
@@ -144,12 +171,15 @@ describe('Standalone', () => {
               location: OcgcoreScriptConstants.LOCATION_EXTRA,
             },
           ]),
-        ),
+        );
+        expectStandaloneCoverage(ctx, 'manual setup');
+      },
     );
   });
   it('Should process with puzzle', async () => {
     await useYGOProTest(
       {
+        coverage: true,
         ygoproPath: path.join(os.homedir(), 'ygo', 'ygopro'),
         single: `
 Debug.SetAIName("as")
@@ -165,16 +195,23 @@ Debug.AddCard(73580471,0,0,LOCATION_EXTRA,0,POS_FACEDOWN)
 Debug.ReloadFieldEnd()
           `,
       },
-      testProcess,
+      (ctx) => {
+        testProcess(ctx);
+        expectStandaloneCoverage(ctx, 'inline puzzle');
+      },
     );
   });
   it('Should process with filename puzzle', async () => {
     await useYGOProTest(
       {
+        coverage: true,
         ygoproPath: path.join(os.homedir(), 'ygo', 'ygopro'),
         single: path.join(__dirname, 'single', 'jstest.lua'),
       },
-      testProcess,
+      (ctx) => {
+        testProcess(ctx);
+        expectStandaloneCoverage(ctx, 'file puzzle');
+      },
     );
   });
   it('Should process with YRP using puzzle', async () => {
@@ -185,11 +222,15 @@ Debug.ReloadFieldEnd()
     ).toBe('jstest.lua');
     await useYGOProTest(
       {
+        coverage: true,
         scriptPath: __dirname,
         yrp: path.join(__dirname, 'standalone-test.yrp'),
         ygoproPath: path.join(os.homedir(), 'ygo', 'ygopro'),
       },
-      testProcess,
+      (ctx) => {
+        testProcess(ctx);
+        expectStandaloneCoverage(ctx, 'yrp puzzle');
+      },
     );
   });
 });

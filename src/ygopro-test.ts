@@ -4,6 +4,8 @@ import {
   CombinedAdvancor,
   createDuelFromYrp,
   LEN_EMPTY,
+  normalizeLuaCoverageName,
+  OcgcoreCreateFlags,
   OcgcoreDuel,
   OcgcoreMessageType,
   OcgcoreWrapper,
@@ -27,6 +29,11 @@ import { formatSnapshot } from './utility/format-snapshot';
 import { makeArray, MayBeArray } from 'nfkit';
 import { omit } from 'cosmokit';
 import { YGOProTestRuntimeOptions } from './ygopro-test-options';
+import {
+  addLuaCoverageSummary,
+  LuaLineCoverage,
+  LuaLineCoverageMap,
+} from './utility/lua-coverage';
 
 export class YGOProTest {
   duel: OcgcoreDuel;
@@ -36,6 +43,10 @@ export class YGOProTest {
   allMessages: YGOProMsgBase[] = [];
   lastSelectMessage: YGOProMsgResponseBase | null = null;
   private errors: string[] = [];
+
+  private get createFlags() {
+    return this.options.coverage ? OcgcoreCreateFlags.EnableLuaCoverage : 0;
+  }
 
   constructor(
     private core: OcgcoreWrapper,
@@ -56,14 +67,18 @@ export class YGOProTest {
   }
 
   private createDuelFromYrp() {
-    this.duel = createDuelFromYrp(this.core, this.options.yrp!).duel;
+    this.duel = createDuelFromYrp(
+      this.core,
+      this.options.yrp!,
+      this.createFlags,
+    ).duel;
     this.advance(StaticAdvancor(this.options.yrp!.responses));
   }
 
   private createDuelFromRaw() {
     this.duel =
       typeof this.options.seed === 'number'
-        ? this.core.createDuel(this.options.seed)
+        ? this.core.createDuel(this.options.seed, this.createFlags)
         : this.core.createDuelV2(
             this.options.seed ??
               (() => {
@@ -73,6 +88,7 @@ export class YGOProTest {
                 }
                 return seeds;
               })(),
+            this.createFlags,
           );
     [0, 1].forEach((player) =>
       this.duel.setPlayerInfo({
@@ -407,6 +423,44 @@ export class YGOProTest {
       throw new Error('Evaluation failed.');
     }
     return decodeEvaluateResult(this, res.text);
+  }
+
+  private readCoverageSource(name: string): Uint8Array | null {
+    const normalized = normalizeLuaCoverageName(name);
+    return (
+      this.duel.ocgcoreWrapper.readScript(`./script/${normalized}`) ??
+      this.duel.ocgcoreWrapper.readScript(normalized)
+    );
+  }
+
+  getCoverage(name: string): LuaLineCoverage {
+    const coverage = this.duel.getLuaCoverage(name);
+    return addLuaCoverageSummary(
+      coverage,
+      this.readCoverageSource(coverage.file),
+    );
+  }
+
+  getAllCoverages(): LuaLineCoverageMap {
+    const coverages = this.duel.getAllLuaCoverages();
+    const result: LuaLineCoverageMap = {};
+    for (const [file, coverage] of Object.entries(coverages)) {
+      result[file] = addLuaCoverageSummary(
+        coverage,
+        this.readCoverageSource(file),
+      );
+    }
+    return result;
+  }
+
+  clearCoverage(name: string): this {
+    this.duel.clearLuaCoverage(name);
+    return this;
+  }
+
+  clearAllCoverages(): this {
+    this.duel.clearAllLuaCoverages();
+    return this;
   }
 
   getLP(player: number) {
