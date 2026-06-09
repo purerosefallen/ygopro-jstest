@@ -72,14 +72,16 @@ export const addLuaCoverageSummary = (
   }
 
   const covered = new Set(result.coveredLines);
+  const coveredExecutableLines = executableLines.filter((line) =>
+    covered.has(line),
+  );
   const uncoveredLines = executableLines.filter((line) => !covered.has(line));
   result.executableLines = executableLines;
   result.uncoveredLines = uncoveredLines;
   result.lineCoverage =
     executableLines.length === 0
       ? 1
-      : (executableLines.length - uncoveredLines.length) /
-        executableLines.length;
+      : coveredExecutableLines.length / executableLines.length;
   return result;
 };
 

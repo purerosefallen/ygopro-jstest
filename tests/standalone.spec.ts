@@ -26,11 +26,13 @@ describe('Standalone', () => {
       .sort((left, right) => left.file.localeCompare(right.file))
       .map((coverage) => {
         const executable = coverage.executableLines?.length ?? 0;
+        const coveredExecutable =
+          executable - (coverage.uncoveredLines?.length ?? 0);
         const ratio =
           coverage.lineCoverage == null
             ? 'n/a'
             : `${(coverage.lineCoverage * 100).toFixed(1)}%`;
-        return `${coverage.file}: covered=${coverage.coveredLines.length}, executable=${executable}, ratio=${ratio}`;
+        return `${coverage.file}: coveredExecutable=${coveredExecutable}, executable=${executable}, rawHits=${coverage.coveredLines.length}, ratio=${ratio}`;
       });
 
     console.log(`[Lua coverage] ${label}\n${rows.join('\n')}`);

@@ -1,6 +1,7 @@
 import { OcgcoreCreateFlags } from 'koishipro-core.js';
 import { YGOProTest } from '../src/ygopro-test';
 import {
+  addLuaCoverageSummary,
   analyzeLuaExecutableLines,
   LuaCoverageRegistry,
   normalizeLuaCoverageName,
@@ -87,6 +88,30 @@ function f()
 end
 `),
     ).toEqual([2, 3, 4, 5, 7]);
+  });
+
+  test('calculates line coverage from ocgcore and luaparse line intersection', () => {
+    const coverage = addLuaCoverageSummary(
+      {
+        file: 'c11111111.lua',
+        hits: { 2: 1, 6: 1 },
+        coveredLines: [2, 6],
+      },
+      `
+function f()
+  local x = 1
+  if x then
+    x = x + 1
+  end
+  return x
+end
+`,
+    );
+
+    expect(coverage.coveredLines).toEqual([2, 6]);
+    expect(coverage.executableLines).toEqual([2, 3, 4, 5, 7]);
+    expect(coverage.uncoveredLines).toEqual([3, 4, 5, 7]);
+    expect(coverage.lineCoverage).toBe(0.2);
   });
 
   test('passes coverage create flags for raw duel creation', () => {
